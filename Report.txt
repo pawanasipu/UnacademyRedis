@@ -1,22 +1,21 @@
-
 <----------------------Report-------------------->
 
-1. Why did you choose that language ?
--->(I) The main reason why I choose c++ for implementation is STL(Standrad Template Library).
-STL eases a user to write code in a simple and efficient manner. I used concepts like map, 
-vector while implementation the functions
--->(II) It is widely used langugae in competative progrramers (I am an active participant) 
+1. Why did you choose that language?
+-->(I) The main reason why I choose c++ for implementation is STL(Standard Template Library).
+STL eases a user to write code in a simple and efficient manner. I used concepts like a map, 
+vector while implementation of the functions
+-->(II) It is widely used language in competitive programmers (I am an active participant) 
 
-2. What are the further improvements that can be made to make it efficient ?
--->(I) Let's first talk about the flaws in the code, given code does not work if key is list 
+2. What are the further improvements that can be made to make it efficient?
+-->(I) Let's first talk about the flaws in the code, given code does not work if the key is a list 
 or set or hash or hyperloglog or stream. And the given code's time complexity is more than 
-the actutal redis functions
--->(II) Still now, I didn't get any idea for it's futher improvements
+the actual Redis functions
+-->(II) Still now, I didn't get any idea for its further improvements
 
 3. What data structures have you used and why?
--->(I) I particulary used C++ STL's map and vector which made things easier. We can implement 
+-->(I) I particularly used C++ STL's map and vector which made things easier. We can implement 
 map in c++ using AVL tree also
 
-4. Does your implementation support multi threaded operations? If No why can’t it be? If yes then how ?
--->(I) Yes, It supports multi threading. If we use "WINAPI" in c++ and a function named 
+4. Do your implementation support multi-threaded operations? If No why can’t it be? If yes then how?
+-->(I) Yes, It supports multi-threading. If we use "WINAPI" in c++ and a function named 
 "GetCurrentThreadId", which produces a separate id.
