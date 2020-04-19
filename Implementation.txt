@@ -1,0 +1,420 @@
+
+/*
+Parameters 
+1. key represnts the key in the database
+2. value represnts the value in the database
+3. tim represents the insertion time in database
+
+4. type represents the type of operation
+5. limit represnt the expire time of key-value
+6. return_value represents the return type of ZADD
+
+7. score_value represents the score-value map  
+
+*/
+struct node{
+    
+    string key, value, tim;
+    
+    int type, limit = -1, return_value = 0;
+    
+    map<int, vector<string>> score_value;
+};
+
+// Map to store node and string
+map<struct node, string> node_key_value;
+
+// Map to store key and value
+map<string, string> key_value;
+
+// Get current date/time, format is YYYY-MM-DD.HH:mm:ss
+const std::string currentDateTime()
+{
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    
+    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+    // for more information about date/time format
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+    return buf;
+}
+
+/*
+parameters 
+1. tim represnts the given time
+
+Function converts given time to seconds and returns interger value
+*/
+int convert_to_second(string tim)
+{
+
+    // Starting time 2020-01-01.00:00:00
+    // Taking a month of 30 days and year having 365 days
+
+    // Get the number of years passed
+    int years = stoi(tim.substr(0, 4)) - 2020;
+
+    // Get the number of months passed
+    int months = stoi(tim.substr(5, 2)) - 1;   
+
+    // Get the number of days passed
+    int days = stoi(tim.substr(8, 2));   
+
+    // Get the number of hours passed
+    int hours = stoi(tim.substr(11, 2));   
+
+    // Get the number of minutes passed
+    int minutes = stoi(tim.substr(14, 2));   
+
+    // Get the number of seconds passed
+    int seconds = stoi(tim.substr(17, 2));
+
+    // Get the number of seconds passed
+    int second = (((365*years + months*30 + days)*24 + hours)*60 + minutes)*60 + seconds;
+
+    return second;
+}
+
+/*
+parameters 
+1. tim represnts the given time
+
+Function converts given time to milli seconds and returns interger value
+*/
+int convert_to_milli_second(string tim)
+{
+
+    // Starting time 2020-01-01.00:00:00
+    // Taking a month of 30 days and year having 365 days
+
+    // Get the number of years passed
+    int years = stoi(tim.substr(0, 4)) - 2020;
+
+    // Get the number of months passed
+    int months = stoi(tim.substr(5, 2)) - 1;   
+
+    // Get the number of days passed
+    int days = stoi(tim.substr(8, 2));   
+
+    // Get the number of hours passed
+    int hours = stoi(tim.substr(11, 2));   
+
+    // Get the number of minutes passed
+    int minutes = stoi(tim.substr(14, 2));   
+
+    // Get the number of seconds passed
+    int seconds = stoi(tim.substr(17, 2));
+
+    // Get the number of milli seconds passed
+    int milli_second = ((((365*years + months*30 + days)*24 + hours)*60 + minutes)*60 + seconds)*1000;
+
+    return milli_second;
+} 
+
+/* Parameters 
+1. key represnts "KEY"
+2. value represents "VALUE"
+3. type represnts
+-----> if type is 0 then it is EX command         
+-----> if type is 1 then it is PX command
+-----> if type is 2 then it is NX command
+-----> if type is 3 then it is XX command 
+-----> if type is -1 then it is a generalised command
+4. If type is 0 or 1 then it tim repesents the time 
+*/
+string SET(string key, string value, int type = -1, int tim = 0)
+{
+    struct node cur;
+
+    // Generalised command
+    if(type==-1)
+    {
+        // Update all values
+        cur.key = key;
+        cur.value = value;
+
+        // Insert in node-value map
+        node_key_value[cur] = value;
+
+        // Insert in key-value map
+        key_value[key] = value;
+    }
+
+    // If it has some time limit
+    else if(type==0 or type==1)
+    {
+        // Get the current time
+        string cur_tim = currentDateTime();
+
+        // Upadte all values
+        cur.key = key;
+        cur.value = value;
+        cur.type = type;
+        cur.limit = tim;
+        cur.tim = cur_tim;
+
+        // Insert in node-value map
+        node_key_value[cur] = value;
+
+        // Insert in key-value map
+        key_value[key] = value;
+    }
+
+    // If does not exsits already
+    else if(type==2)
+    {
+        // If it not exisits already
+        if(key_value.find(key)==key_value.end())
+        {
+            // Upadte all values
+            cur.key = key;
+            cur.value = value;
+
+            // Insert in node-value map
+            node_key_value[cur] = value;
+
+            // Insert in key-value map
+            key_value[key] = value;
+        }
+    }
+
+    // If exsits already
+    else 
+    {
+        // If it is exists already
+        if(key_value.find(key)!=key_value.end())
+        {
+            // Erase the existing value
+            for(auto i=node_key_value.begin(), i!=node_key_value.end();i++)
+            {
+                struct node temp = i->first;
+
+                // If key found
+                if(temp.key==key)
+                {
+                    // Erase the node with given key
+                    node_key_value.erase(temp);
+                    break;
+                }
+            }
+            
+            // Upadte all values
+            cur.key = key;
+            cur.value = value;
+
+            // Insert in node-value map
+            node_key_value[cur] = value;
+
+            // Insert in key-value map
+            key_value[key] = value;
+        }   
+    }
+
+    return "OK";
+}
+
+/*
+Parameters 
+1. key represnts "KEY"
+
+In main function first it checks if it expires or not. 
+If expires then no need to call GET function
+*/
+string GET(string key)
+{
+    // Cheks if it exits in the database or not
+    if(key_value.find(key)!=key_value.end())
+        return key_value[key];
+
+    // If it is not exsits
+    return "(nil)";
+}
+
+/*
+As EXPIRE function is called ony if key exists in the database
+Parameters 
+1. key represnts "KEY"
+
+Returns 1 if KEY has expire time else returns 0
+*/
+int EXPIRE(string key)
+{
+    // Check for key in the database
+    for(auto i=node_key_value.begin(), i!=node_key_value.end();i++)
+    {
+        struct node temp = i->first;
+
+        // If key found
+        if(temp.key==key)
+        {
+            // If it does not has any time limit to expire
+            if(temp.limit==-1)
+                return 0;
+
+            // If it has time limit to expire
+            return 1;
+        }
+    }
+}
+
+/*
+As ZADD function is called ony if key exists in the database
+Parameters 
+1. key represnts "KEY"
+2. scores represnts the list of scores
+3. value represents the list of values for respective scores
+4. type represnts
+-----> if type is 0 then it is XX command         
+-----> if type is 1 then it is NX command
+-----> if type is 2 then it is CH command
+-----> if type is 3 then it is INCR command 
+-----> if type is -1 then it is a generalised command 
+*/
+int ZADD(string key, vector<int> scores, vector<string> values, int type)
+{
+    // Seacrh for the key in the data base
+    for(auto i=node_key_value.begin(), i!=node_key_value.end();i++)
+    {
+        struct node cur = i->first;
+
+        // If key found
+        if(cur.key==key)
+        {
+            for(int j = 0; j < scores.size(); j++)
+            {
+                // Update existing ones
+                if(type==0)
+                {
+                    int score = scores[j];
+                    if(cur.score_value.find(score)!=cur.score_value.end())
+                        cur.score_value[score].push_back(values[j]);
+                }
+
+                // Add only new elements
+                else if(type==1)
+                {
+                    int score = scores[j];
+                    if(cur.score_value.find(score)==cur.score_value.end())
+                        cur.score_value[score].push_back(values[j]);   
+                }
+
+                // Modify the return value
+                else if(type==2)
+                {
+                    cur.score_value[scores[j]].push_back(values[j]);
+                    cur.return_value = 1;
+                }
+
+                // Only one score-value
+                else if(type==3)
+                {
+                    cur.score_value[scores[j]].push_back(values[j]);
+                }
+
+                // Generalised command
+                else
+                {
+                    cur.score_value[scores[j]].push_back(values[j]);
+                }
+            }
+
+            // Return the value
+            // Number of eleemnts added or number of elements changes
+            cur.return_value;
+        }
+    }
+
+}
+
+/*
+As ZRANGE function is called ony if key exists in the database
+Parameters 
+1. key represnts "KEY"
+2. l represnts the lower element in the range
+3. r represnts the upper element in the range
+
+In main l and r are modified such that l<=r
+*/
+void ZRANGE(string key, int l, int r)
+{
+    // Search for the key in database
+    for(auto i=node_key_value.begin(), i!=node_key_value.end();i++)
+    {
+        struct node cur = i->first;
+
+        // If key is found
+        if(cur.key==key)
+        {
+            // To store index
+            int x = 0;
+            map<int, vector<string>> score_value = cur.score_value;
+
+            for(auto j=score_value.begin();j!=score_value.end();j++)
+            {
+                // If the ranke of score lies in the range
+                if(x>=l and x<=r)
+                {
+                    for(auto it=score_value->second.begin();it!=score_value->second.end();it++)
+                    {
+                        // Print the element
+                        cout << *it << endl;
+                    }
+                }
+
+                // Increment index
+                x++;
+
+                // If out of range
+                if(x>r)
+                    break;
+            }
+        }
+    }    
+}
+
+/*
+As ZRANK function is called ony if key exists in the database
+Parameters 
+1. key represnts "KEY"
+2. value represnts the string whose rank we searching for
+*/
+string ZRANK(string key, string value)
+{
+    // Search for the node in the database
+    for(auto i=node_key_value.begin(), i!=node_key_value.end();i++)
+    {
+        struct node cur = i->first;
+
+        // If key found
+        if(cur.key==key)
+        {
+            // To store the index
+            int x = 0;
+
+            map<int, vector<string>> score_value = cur.score_value;
+
+            for(auto j=score_value.begin();j!=score_value.end();j++)
+            {
+                for(auto it=score_value->second.begin();it!=score_value->second.end();it++)
+                {
+                    // If given value found
+                    if(*it==value)
+                        return to_string(x);
+                }
+                
+                // Increment index
+                x++;
+            }
+        }
+    }    
+
+    return "(nil)";
+}
+
+int main(int argc, char* argv[])
+{
+    // Code
+}
